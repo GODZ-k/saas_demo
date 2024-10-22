@@ -1,10 +1,11 @@
 import { Router } from "express";
-import { createSubdomain } from "../controller/user.controller.js";
+import { createSubdomain, deployRestaurant } from "../controller/user.controller.js";
 
 const router = Router()
 
 
 router.route('/create/subdomain').post(createSubdomain)
+router.route('/generate/restartant').post(deployRestaurant)
 
 
 export default router
