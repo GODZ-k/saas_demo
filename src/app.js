@@ -1,9 +1,12 @@
 import express from 'express'
+import dotenv from 'dotenv'
 import cors from 'cors'
 import userRoute from './routes/user.route.js'
 
 
 const app = express()
+dotenv.config({})
+
 app.use(cors({
     credentials: true,
     // origin: "https://social-media-bmt3.vercel.app",
