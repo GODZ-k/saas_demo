@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e  # Exit immediately if a command exits with a non-zero status
+
 # Variables (Replace these with your actual values)
 SUBDOMAIN=$1               # Subdomain for the restaurant (e.g., restaurant1)
 DOMAIN="qrdine-in.com"     # Main domain
@@ -9,18 +11,21 @@ NGINX_TEMPLATE="/var/www/saas-demo/_work/saas_demo/saas_demo/nginx_template.conf
 SSL_EMAIL="tdm.katts1@gmail.com"        # Email for SSL registration with Certbot
 MYSQL_USER="root"           # MySQL root username
 MYSQL_PASS="Aa@112233"  # MySQL root password
-DB_NAME="restaurant_${SUBDOMAIN}"  # Database name for the restaurant
+SANITIZED_SUBDOMAIN="${SUBDOMAIN//-/_}"
+# Construct the database name using the sanitized subdomain
+DB_NAME="restaurant_${SANITIZED_SUBDOMAIN}" 
 SAMPLE_DB="/var/www/saas-demo/_work/saas_demo/saas_demo/sample_database.sql"  # Path to sample database SQL file
 
 echo "unzip restaurant"
 # Step 1: Create the folder and unzip Laravel application
-mkdir -p "$WEB_ROOT/$SUBDOMAIN"
-unzip "$LARAVEL_ZIP" -d "$WEB_ROOT/$SUBDOMAIN"
+# mkdir -p "$WEB_ROOT/$SUBDOMAIN"
+unzip "$LARAVEL_ZIP" -d "$WEB_ROOT"
+mv "$WEB_ROOT/frenzoo" "$WEB_ROOT/$SUBDOMAIN"
 
 echo "configuring env files"
 # Step 2: Configure Laravel .env file
 # cp "$WEB_ROOT/$SUBDOMAIN/.env.example" "$WEB_ROOT/$SUBDOMAIN/.env"
-sed -i "s/DB_DATABASE=laravel/DB_DATABASE=$DB_NAME/" "$WEB_ROOT/$SUBDOMAIN/.env"x
+sed -i "s/DB_DATABASE=laravel/DB_DATABASE=$DB_NAME/" "$WEB_ROOT/$SUBDOMAIN/.env"
 # sed -i "s/DB_USERNAME=root/DB_USERNAME=$DB_USER/" "$WEB_ROOT/$SUBDOMAIN/.env"
 # sed -i "s/DB_PASSWORD=/DB_PASSWORD=$DB_PASS/" "$WEB_ROOT/$SUBDOMAIN/.env"
 
@@ -33,7 +38,9 @@ sudo chmod -R 775 "$WEB_ROOT/$SUBDOMAIN/bootstrap/cache"
 
 echo "creating database for the restaurant"
 # Step 4: Create MySQL Database and User
-mysql -u"$MYSQL_USER" -p"$MYSQL_PASS" -e "CREATE DATABASE $DB_NAME"
+# Create MySQL Database
+mysql -u"$MYSQL_USER" -p"$MYSQL_PASS" -e "CREATE DATABASE \`$DB_NAME\`"
+# Import the sample database
 mysql -u"$MYSQL_USER" -p"$MYSQL_PASS" "$DB_NAME" < "$SAMPLE_DB"
 # mysql -u"$MYSQL_USER" -p"$MYSQL_PASS" -e "CREATE USER '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS'"
 # mysql -u"$MYSQL_USER" -p"$MYSQL_PASS" -e "GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'localhost'"
@@ -41,12 +48,12 @@ mysql -u"$MYSQL_USER" -p"$MYSQL_PASS" "$DB_NAME" < "$SAMPLE_DB"
 
 
 # Step 5: Set up Nginx configuration
-# NGINX_CONF="/etc/nginx/sites-available/$SUBDOMAIN.conf"
-# sed "s/{{subdomain}}/$SUBDOMAIN/g" "$NGINX_TEMPLATE" > "$NGINX_CONF"
-# ln -s "$NGINX_CONF" /etc/nginx/sites-enabled/
+NGINX_CONF="/etc/nginx/sites-available/$SUBDOMAIN.conf"
+sed "s/{{subdomain}}/$SUBDOMAIN/g" "$NGINX_TEMPLATE" > "$NGINX_CONF"
+ln -s "$NGINX_CONF" /etc/nginx/sites-enabled/
 
 # # Step 6: Reload Nginx to apply new configuration
-# sudo systemctl reload nginx
+sudo systemctl reload nginx
 
 # # Step 7: Set up SSL using Certbot
 # sudo certbot --nginx --non-interactive --agree-tos --email "$SSL_EMAIL" -d "$SUBDOMAIN.$DOMAIN"

@@ -1,10 +1,11 @@
 import axios from "axios";
-import path from 'path'
+import path from "path";
+import { spawn } from "child_process";
 
 const createSubdomain = async (req, res) => {
     try {
 
-        const { domainName, } = req.body
+        const { domainName } = req.body
 
         if(!domainName){
             return res.status(404).json({
@@ -55,29 +56,40 @@ const deployRestaurant = async (req, res) => {
         }
 
         // Define the script path and command
-        const scriptPath = path.join(__dirname, 'deploy_restaurant.sh');
-        const command = `${scriptPath} ${subdomain}`;
+        const scriptPath = '/var/www/saas-demo/_work/saas_demo/saas_demo/deploy_restaurant.sh';
+        const command = scriptPath;
+        const args = [subdomain]
 
-        return res.status(200).json({ message: `Restaurant deployed successfully` });
+        const child = spawn(command, args, { shell: true });
+
+        let stdoutData = '';
+        let stderrData = '';
+
+        child.stdout.on('data', (data) => {
+            stdoutData += data; // Accumulate stdout data
+            console.log(`stdout: ${data}`); // Log stdout data
+        });
+
+        child.stderr.on('data', (data) => {
+            stderrData += data; // Accumulate stderr data
+            console.error(`stderr: ${data}`); // Log stderr data
+        });
 
         // Run the bash script using exec
-        exec(command, (error, stdout, stderr) => {
-            if (error) {
-                console.error(`Error executing script: ${error.message}`);
-                return res.status(500).json({ error: 'Deployment failed' });
-            }
-
-            if (stderr) {
-                console.error(`Script stderr: ${stderr}`);
-                return res.status(500).json({ error: stderr });
+        child.on('close', (code) => {
+            if (code !== 0) {
+                console.error(`Process exited with code ${code}`);
+                return res.status(500).json({ error: `Deployment failed with code ${code}`, stderr: stderrData });
             }
 
             // Return success response
-           return res.status(200).json({ message: `Restaurant ${subdomain} deployed successfully`, output: stdout });
+            return res.status(200).json({ message: `Restaurant ${subdomain} deployed successfully`, output: stdoutData });
         });
-
+        
     } catch (error) {
+        console.log(error)
         return res.status(500).json({
+            error,
             msg: "Internal server error"
         })
     }
