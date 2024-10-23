@@ -24,7 +24,7 @@ const createSubdomain = async (req, res) => {
                 comment: 'Domain verification record',
                 name: `${domainName}.qrdine-in.com`,
                 ttl: 1,
-                content: '194.238.19.145',
+                content: '145.223.18.182',
                 type: 'A'
             }
         };
@@ -58,6 +58,8 @@ const deployRestaurant = async (req, res) => {
         const scriptPath = path.join(__dirname, 'deploy_restaurant.sh');
         const command = `${scriptPath} ${subdomain}`;
 
+        return res.status(200).json({ message: `Restaurant deployed successfully` });
+
         // Run the bash script using exec
         exec(command, (error, stdout, stderr) => {
             if (error) {
@@ -71,7 +73,7 @@ const deployRestaurant = async (req, res) => {
             }
 
             // Return success response
-            res.json({ message: `Restaurant ${subdomain} deployed successfully`, output: stdout });
+           return res.status(200).json({ message: `Restaurant ${subdomain} deployed successfully`, output: stdout });
         });
 
     } catch (error) {
